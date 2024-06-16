@@ -1,0 +1,11 @@
+
+    fun foo(x: int, y: int) -> int {
+        return x + y
+    }
+
+    fun bar(z: int) -> int {
+        return z * 2
+    }
+
+    x: int = foo(2, 8)
+    y: int = bar(3)
