@@ -138,30 +138,30 @@ def p_statements(p):
 
 
 def p_declaration(p):
-    """declaration : IDENTIFICADOR COLON tipo ASIGNACION expression"""
+    """declaration : IDENTIFICADOR COLON tipo ASIGNACION expresion"""
     p[0] = ("declaration", p[1], p[3], p[5])
 
 
 def p_assignment(p):
-    """assignment : IDENTIFICADOR ASIGNACION expression"""
+    """assignment : IDENTIFICADOR ASIGNACION expresion"""
     p[0] = ("assign", p[1], p[3])
 
 
 def p_expression_statement(p):
-    """expression_statement : expression"""
+    """expression_statement : expresion"""
     p[0] = p[1]
 
 
 def p_return_statement(p):
-    """return_statement : RETURN expression"""
+    """return_statement : RETURN expresion"""
     p[0] = ("return", p[2])
 
 
-def p_expression(p):
-    """expression : expression MAS expression
-    | expression MENOS expression
-    | expression MULTIPLICACION expression
-    | expression DIVISION expression
+def p_expresion(p):
+    """expresion : expresion MAS expresion
+    | expresion MENOS expresion
+    | expresion MULTIPLICACION expresion
+    | expresion DIVISION expresion
     | term"""
     if len(p) == 4:
         p[0] = (p[2], p[1], p[3])
@@ -169,27 +169,10 @@ def p_expression(p):
         p[0] = p[1]
 
 
-def p_expression_binop(p):
-    """
-    expression : expression MAS expression
-              | expression MENOS expression
-              | expression MULTIPLICACION expression
-              | expression DIVISION expression
-    """
-    if p[2] == "+":
-        p[0] = p[1] + p[3]
-    elif p[2] == "-":
-        p[0] = p[1] - p[3]
-    elif p[2] == "*":
-        p[0] = p[1] * p[3]
-    elif p[2] == "/":
-        p[0] = p[1] / p[3]
-
-
 def p_term(p):
     """term : INTEGER
     | IDENTIFICADOR
-    | LPAREN expression RPAREN"""
+    | LPAREN expresion RPAREN"""
     if len(p) == 2:
         p[0] = p[1]
     else:
@@ -202,9 +185,9 @@ def p_empty(p):
 
 
 def p_tipo(p):
-    """tipo : INTEGER"""
+    """tipo : INTEGER 
+    """
     p[0] = p[1]
-
 
 def p_error(p):
     if p:
@@ -216,24 +199,18 @@ def p_error(p):
 if __name__ == "__main__":
     lexer = lex.lex()
     parser = yacc.yacc()
-    # data = """
-    # x: int = 2
-    # y: int = 3
-    # z: int = (x + y) * 2
-    #
-    # """
-    # lexer.input(data)
-    # while True:
-    #     tok = lexer.token()
-    #     if not tok:
-    #         break
-    #     print(tok)
+    data = """
+    x: int = 2
+    y: int = 3
+    y: int = (x + y) * 2
 
+    """
+    lexer.input(data)
     while True:
-        try:
-            s = input("calc > ")
-        except EOFError:
+        tok = lexer.token()
+        if not tok:
             break
-        if not s:
-            continue
-        yacc.parse(s + "\n")
+        print(tok)
+
+    result = parser.parse(data)
+    print(result)
