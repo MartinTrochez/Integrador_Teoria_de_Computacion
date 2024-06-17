@@ -1,11 +1,11 @@
-
-    fun foo(x: int, y: int) -> int {
-        return x + y
+es_mayor_diez(numero) {
+    if (numero > 10) {
+        return "numero es mayor a 10"
+    } else {
+        return "numero es menor o igual a 10"
     }
+}
 
-    fun bar(z: int) -> int {
-        return z * 2
-    }
+b = 11;
 
-    x: int = foo(2, 8)
-    y: int = bar(3)
+print(es_mayor_diez(b));
