@@ -1,11 +1,13 @@
-es_mayor_diez(numero) {
-    if (numero > 10) {
-        return "numero es mayor a 10"
-    } else {
-        return "numero es menor o igual a 10"
-    }
+
+{
+    /*Esto es un comentario*/
+    palabra := "cadena";
+    tamanio_palabra := len(palabra);
+    print(tamanio_palabra);
+    print(10*(3+6));
+    a := 5;
+    b := (a*0.25)**a;
+    c := chop(a);
+    asd := input("ingrese un palabra: ");
+    print(asd);
 }
-
-b = 11;
-
-print(es_mayor_diez(b));

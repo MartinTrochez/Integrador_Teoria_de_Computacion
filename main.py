@@ -8,423 +8,295 @@ Alumnos:
 - Trochez, Martin
 """
 
+import logging
+from enum import Enum, unique
+from typing import Dict
 from ply import lex
 from ply import yacc
-import sys
-import logging
 
-tokens = [
+registro_id_valor = {}
+
+ast = []
+
+reserved = ("INPUT", "PRINT", "ELSE", "IF", "STR", "LEN", "CHOP")
+
+tokens = reserved + (
     "IDENTIFICADOR",
-    # Tipos de varabiables
-    "INTEGER",
-    "FLOAT",
+    "ASIGNACION",
+    # tipos
+    "NUMERO",
+    "REAL",
     "STRING",
-    # Operaciones con varbiales
+    # Operadores
+    "IGUALDAD",
+    "NOIGUALDAD",
+    "MAYOR",
+    "MENOR",
     "MAS",
     "MENOS",
     "MULTIPLICACION",
     "DIVISION",
-    "DIVISIONINTEGER",
-    "MODULO",
     "EXPONENTE",
-    "ASIGNACION",
-    "MENORQUE",
-    "MENORQUEIGUAL",
-    "MAYORQUE",
-    "MAYORQUEIGUAL",
-    "NOIGUALDAD",
-    "IGUALDAD",
-    "MENOSUNARY"
     # Limitadores
-    "COMA",
+    "LPAR",
+    "RPAR",
+    "RBRACKET",
+    "LBRACKET",
+    "LBRACE",
+    "RBRACE",
     "PUNTOCOMA",
-    "PARENTESISI",
-    "PARENTESISD",
-    "LLAVEI",
-    "LLAVED",
-    "CORCHETEI",
-    "CORCHETED",
+    "COLON",
     "COMA",
-]
-
-reserved = {
-    "or": "OR",
-    "not": "NOT",
-    "and": "AND",
-    "in": "IN",
-    "if": "IF",
-    "while": "WHILE",
-    "print": "PRINT",
-    "else": "ELSE",
-    "return": "RETURN",
-}
-
-tokens += list(reserved.values())
+    "COMENTARIO",
+)
 
 
-t_MAS = r"r\+"
+t_ASIGNACION = r":="
+t_IGUALDAD = r"="
+t_NOIGUALDAD = r"!="
+t_MAYOR = r">"
+t_MENOR = r"<"
+t_MAS = r"\+"
 t_MENOS = r"-"
 t_MULTIPLICACION = r"\*"
-t_DIVISION = r"\/"
-t_DIVISIONINTEGER = r"\/\/"
-t_MODULO = r"\%"
+t_DIVISION = r"/"
 t_EXPONENTE = r"\*\*"
-t_ASIGNACION = r"="
-t_MENORQUE = r"<"
-t_MENORQUEIGUAL = r"<="
-t_MAYORQUE = r">"
-t_MAYORQUEIGUAL = r">="
-t_NOIGUALDAD = r"!="
-t_IGUALDAD = r"=="
+t_LPAR = r"\("
+t_RPAR = r"\)"
+t_LBRACKET = r"\["
+t_RBRACKET = r"\]"
+t_LBRACE = r"\{"
+t_RBRACE = r"\}"
+t_COMA = r","
 t_PUNTOCOMA = r";"
-t_COMA = r"\,"
-t_PARENTESISI = r"\("
-t_PARENTESISD = r"\)"
-t_LLAVEI = r"{"
-t_LLAVED = r"}"
-t_CORCHETEI = r"\["
-t_CORCHETED = r"\]"
-t_NOT = r"not"
-t_AND = r"and"
-t_OR = r"or"
-t_IF = r"if"
-t_ELSE = r"else"
-t_PRINT = r"print"
-t_WHILE = r"while"
-t_ignore = " \t"
+t_COLON = r":"
+t_ignore = " \t\n"
 
-"""Reglas de Tokenizacion"""
+"""
+Reglas de tokenizacion
+"""
 
 
-def t_IDENTIFICADOR(t):
-    r"[A-Za-z_][A-Za-z0-9_]*"
-    t.type = reserved.get(t.value, "IDENTIFICADOR")
+def t_REAL(t):
+    r"\d+(\.\d+)"
+    try:
+        t.value = float(t.value)
+    except ValueError:
+        print("Integer value too large %d", t.value)
+        t.value = 0
     return t
 
 
-def t_INTEGER(t):
+def t_NUMERO(t):
     r"\d+"
-    t.value = int(t.value)
+    try:
+        t.value = int(t.value)
+    except ValueError:
+        print("Integer value too large %d", t.value)
+        t.value = 0
     return t
 
 
-def t_NUMBER(t):
-    r"\d*\.\d+"
-    t.value = float(t.value)
+def t_COMENTARIO(t):
+    r"""\/\*([^(\/\*)(\*\/)])+\*\/"""
     return t
 
 
 def t_STRING(t):
-    r"\"[^\"]+\"|\"\" "
-    t.value = str(t.value[1:-1])
+    r"\".*\" "
+    t.value = t.value[1:-1]
     return t
 
 
-def t_NEWLINE(t):
-    r"\n+"
-    t.lexer.lineno += len(t.value)
-
-
 def t_error(t):
-    print(f"Illegal character '{t.value[0]}'")
+    print(f"Token no valido {t.value[0]}")
     t.lexer.skip(1)
 
 
-precedence = (
-    ("left", "OR"),
-    ("left", "AND"),
-    ("left", "NOT"),
-    (
-        "left",
-        "MENORQUE",
-        "MENORQUEIGUAL",
-        "MAYORQUE",
-        "MAYORQUEIGUAL",
-        "NOIGUALDAD",
-        "IGUALDAD",
-    ),
-    ("left", "IN"),
-    ("left", "MAS", "MENOS"),
-    ("left", "DIVISIONINTEGER"),
-    ("left", "EXPONENTE"),
-    ("left", "MULTIPLICACION", "DIVISION"),
-    ("nonassoc", "PARENTESISI", "PARENTESISD"),
-    ("nonassoc", "CORCHETEI", "CORCHETED"),
-    ("nonassoc", "MENOSUNARY"),
-)
+registro_identificadores = {}
+for r in reserved:
+    registro_identificadores[r.lower()] = r
 
 
-"""Reglas Gramaticas"""
+def t_IDENTIFICADOR(t):
+    r"[_a-zA-Z][_a-zA-Z\d]*"
+    t.type = registro_identificadores.get(t.value, "IDENTIFICADOR")
+    return t
 
+
+
+"""
+Reglas de gramatica
+"""
 
 def p_programa(p):
-    """programa : declaraciones"""
-    p[0] = evaluador(p[1])
+    "programa : declaraciones"
+    p[0] = p[1]
+    ast.append(p[0])
 
 
 def p_declaraciones(p):
-    """declaraciones : declaracion PUNTOCOMA declaraciones
-    | bloque declaraciones
-    | bucle declaraciones
-    | funcion declaraciones
-    | condicional declaraciones
-    | vacio"""
-
-    if len(p) == 4:
-        p[0] = ("declaracion", p[1], p[2])
-    elif len(p) == 3:
-        p[0] = ("declaracion", p[1], p[3])
-    elif (len(p) != 4) or (len(p) != 3):
-        p[0] = p[1]
+    """declaraciones : comentario declaraciones
+    | comentario
+    | declaracion
+    | declaracion comentario
+    """
 
 
-def p_condicional(p):
-    """condicional : IF PARENTESISI expresion PARENTESISD bloque
-    | IF PARENTESISI expresion PARENTESISD bloque ELSE bloque"""
-
-    if len(p) == 6:
-        p[0] = (p[1], p[3], p[5])
-    elif len(p) == 8:
-        p[0] = ("if_else", p[3], p[5], p[7])
-
-
-def p_bucle(p):
-    """bucle : WHILE PARENTESISI expresion PARENTESISD bloque"""
-
-    p[0] = (p[1], p[3], p[5])
-
-
-def p_bloque(p):
-    """bloque : LLAVEI declaraciones LLAVED"""
-
-    p[0] = p[2]
-
-
-def p_declaracion(p):
-    """declaracion : expresion
-    | asignacion
-    | imprimir
-    | return"""
-
+def p_comentario(p):
+    """comentario : COMENTARIO"""
     p[0] = p[1]
 
 
-def p_funcion(p):
-    """funcion : IDENTIFICADOR PARENTESISI parametros PARENTESISD bloque
-    | IDENTIFICADOR PARENTESISI PARENTESISD bloque"""
-
-    if len(p) == 6:
-        p[0] = ("def_funcion", p[1], p[3], p[5])
-    elif len(p) == 5:
-        p[0] = ("def_funcion", p[1], [], p[4])
+def p_declaracion(p):
+    """declaracion : LBRACE estado RBRACE"""
+    p[0] = p[1]
 
 
-def p_parametros(p):
-    """parametros : parametros COMA IDENTIFICADOR
-    | IDENTIFICADOR"""
-
-    if len(p) == 4:
-        p[0] = p[1] + [p[3]]
-    elif len(p) == 2:
-        p[0] = [p[1]]
+def p_estado(p):
+    """estado : asignacion_declaracion estado
+    | asignacion_declaracion
+    """
 
 
-def p_return(p):
-    """return : RETURN expresion"""
+def p_estado_comentario(p):
+    """estado : comentario estado
+    | comentario
+    """
 
-    p[0] = ("retorno", p[2])
 
-
-def p_funcionllamada(p):
-    """funcionllamada : IDENTIFICADOR PARENTESISI arreglo PARENTESISD
-    | IDENTIFICADOR PARENTESISI PARENTESISD"""
-
+def p_asignacion_declaracion(p):
+    """asignacion_declaracion : IDENTIFICADOR ASIGNACION E PUNTOCOMA
+    | IDENTIFICADOR ASIGNACION INPUT LPAR RPAR PUNTOCOMA
+    | IDENTIFICADOR ASIGNACION INPUT LPAR STRING RPAR PUNTOCOMA
+    """
     if len(p) == 5:
-        p[0] = ("llamada_funcion", p[1], p[3])
-    elif len(p) == 4:
-        p[0] = ("llamada_funcion", p[1], [])
+        registro_id_valor[p[1]] = p[3]
+    elif len(p) == 7:
+        registro_id_valor[p[1]] = input()
+    elif len(p) == 8:
+        registro_id_valor[p[1]] = input(p[5])
 
 
-def p_imprimir(p):
-    """imprimir : PRINT PARENTESISI expresion PARENTESISD"""
+def p_asignacion_declaracion_string(p):
+    """asignacion_declaracion : PRINT LPAR STRING RPAR PUNTOCOMA"""
+    print(p[3])
 
-    p[0] = (p[1], p[3])
+
+def p_asignacion_declaracion_identificador(p):
+    """asignacion_declaracion : PRINT LPAR IDENTIFICADOR RPAR PUNTOCOMA"""
+    print(registro_id_valor[p[3]])
+
+
+def p_asignacion_declaracion_numero(p):
+    """asignacion_declaracion : PRINT LPAR NUMERO RPAR PUNTOCOMA
+    | PRINT LPAR REAL RPAR PUNTOCOMA
+    """
+    print(p[3])
+
+
+def p_asignacion_declaracion_string_identificador(p):
+    """asignacion_declaracion : PRINT LPAR STRING COMA IDENTIFICADOR RPAR PUNTOCOMA"""
+    print(p[3], registro_id_valor[p[5]])
+
+
+def p_asignacion_declaracion_e(p):
+    """asignacion_declaracion : PRINT LPAR E RPAR PUNTOCOMA"""
+    print(p[3])
+
+
+def p_E(p):
+    """E : expresion"""
+    p[0] = p[1]
+
+
+def p_E_len(p):
+    """E : LEN LPAR IDENTIFICADOR RPAR"""
+    p[0] = len(registro_id_valor[p[3]])
+
+
+def p_E_str(p):
+    """E : STR LPAR IDENTIFICADOR RPAR"""
+    p[0] = str(registro_id_valor[p[3]])
+
+
+def p_E_chop(p):
+    """E : CHOP LPAR IDENTIFICADOR RPAR"""
+    p[0] = int(registro_id_valor[p[3]])
 
 
 def p_expresion(p):
-    """expresion : logica
-    | matemacia
-    | funcionllamada
-    | factor
-    | arregloasignacion
-    | arregloindice
-    | comparasion"""
-
-    if len(p) == 4:
-        p[0] = (p[2], p[1], p[3])
-    elif len(p) == 2:
-        p[0] = p[1]
-
-
-def p_logica(p):
-    """logica : NOT expresion
-    | expresion AND expresion
-    | expresion OR expresion
-    | expresion IN expresion"""
-
-    if len(p) == 2:
-        p[0] = p[1]
-    elif len(p) == 3:
-        p[0] = ("not", p[2])
-    elif len(p) == 4:
-        if p[2] == "and":
-            p[0] = ("and", p[1], p[3])
-        elif p[2] == "OR":
-            p[0] = ("and", p[1], p[3])
-        elif p[2] == "in":
-            p[0] = ("in", p[1], p[3])
-
-
-def p_arregloindice(p):
-    """arregloindice : expresion CORCHETEI expresion CORCHETED"""
-
-    p[0] = ("arreglo_indice", p[1], p[2])
-
-
-def p_variable(p):
-    """variable : IDENTIFICADOR"""
-
-    p[0] = ("get_variable", p[1])
-
-
-def p_comparasion(p):
-    """comparasion : expresion MAYORQUE expresion
-    | expresion MAYORQUEIGUAL expresion
-    | expresion MENORQUE expresion
-    | expresion MENORQUEIGUAL expresion
-    | expresion IGUALDAD expresion
-    | expresion NOIGUALDAD expresion"""
-
-    p[0] = (p[2], p[1], p[3])
-
-
-def p_asignacion(p):
-    """asignacion : IDENTIFICADOR ASIGNACION expresion
-    | expresion CORCHETEI expresion CORCHETED ASIGNACION expresion"""
-
-    if len(p) == 4:
-        p[0] = (p[2], p[1], p[3])
-    elif len(p) == 7:
-        p[0] = ("asignar_valor_arreglo", p[1], p[3], p[6])
-
-
-def p_matematica(p):
-    """matemacia : expresion MULTIPLICACION expresion
-    | expresion MAS expresion
+    """expresion : expresion MAS expresion
     | expresion MENOS expresion
+    | expresion MULTIPLICACION expresion
     | expresion DIVISION expresion
-    | expresion DIVISIONINTEGER factor
-    | expresion MODULO expresion
-    | expresion EXPONENTE expresion
-    | MENOS factor %prec MENOSUNARY"""
-
-    if len(p) == 4:
-        p[0] = (p[2], p[1], p[3])
-    elif len(p) == 2:
-        p[0] = p[1]
-    elif len(p) == 3:
-        p[0] = ("menos_unary", p[1], p[2])
-
-
-def p_factor(p):
-    """factor : PARENTESISI expresion PARENTESISD
-    | INTEGER
-    | FLOAT
-    | STRING
-    | variable"""
-
-    if len(p) == 2:
-        p[0] = p[1]
-    elif len(p) == 4:
-        p[0] = p[2]
+    | expresion EXPONENTE expresion"""
+    if p[2] == "+":
+        p[0] = p[1] + p[3]
+    elif p[2] == "-":
+        p[0] = p[1] - p[3]
+    elif p[2] == "*":
+        p[0] = p[1] * p[3]
+    elif p[2] == "/":
+        p[0] = p[1] / p[3]
+    elif p[2] == "**":
+        p[0] = p[1] ** p[3]
 
 
-def p_arreglo(p):
-    """arreglo : arreglohead elemento"""
-
-    if len(p) == 3:
-        p[0] = p[1] + p[2]
+def p_expresion_grupo(p):
+    "expresion : LPAR expresion RPAR"
+    p[0] = p[2]
 
 
-def p_arregloasignacion(p):
-    """arregloasignacion : CORCHETEI CORCHETED
-    | CORCHETEI arreglo CORCHETED"""
-
-    if len(p) == 3:
-        p[0] = []
-    elif len(p) == 4:
-        p[0] = p[2]
+def p_expresion_number(p):
+    "expresion : NUMERO"
+    p[0] = int(p[1])
 
 
-def p_elemento(p):
-    """elemento : expresion"""
-
-    p[0] = [p[1]]
-
-
-def p_arreglohead(p):
-    """arreglohead : arreglohead elemento COMA
-    | vacio"""
-
-    if len(p) == 4:
-        p[0] = p[1] + p[2]
-    elif len(p) == 2:
-        p[0] = []
+def p_expresion_real(p):
+    "expresion : REAL"
+    p[0] = float(p[1])
 
 
-def p_vacio(p):
-    """vacio :"""
-    pass
+def p_expresion_identificador(p):
+    "expresion : IDENTIFICADOR"
+    p[0] = registro_id_valor[p[1]]
+
+
+def p_expresion_name_str(p):
+    "expresion : STRING"
+    p[0] = p[1]
 
 
 def p_error(p):
-    print(f"error {p.value}")
-
-
-"""Evaluador"""
-
-
-def evaluador(p):
-    pass
+    print("Syntax error at '%s'" % p.value)
 
 
 if __name__ == "__main__":
     logging.basicConfig(
-        level=logging.DEBUG,
-        filename="parselog.txt",
-        filemode="w",
-        format="%(filename)10s:%(lineno)4d:%(message)s",
+        level = logging.DEBUG,
+        filename = "parselog.txt",
+        filemode = "w",
+        format = "%(filename)10s:%(lineno)4d:%(message)s"
     )
     log = logging.getLogger()
     lexer = lex.lex(debug=True, debuglog=log)
-    lexer.input(
-        """
-            es_mayor_diez(numero) {
-                if (numero > 10) {
-                    return "numero es mayor a 10"
-                } else {
-                    return "numero es menor o igual a 10"
-                }
-            }
-
-            b = 11;
-
-            print(es_mayor_diez(b));
-            """
-    )
-    for tok in lexer:
-        print(tok)
 
     parser = yacc.yacc(debug=True, debuglog=log)
-    resultado = parser.parse()
-    print(resultado)
+
+    path_file = "./test.txt"
+
+    contenido = open(path_file, "r")
+
+    lines = contenido.readlines()
+
+    contenido.close()
+    data = ""
+    for line in lines:
+        data += line
+
+    parser.parse(data)
+
+    print(ast)
+
+    print(registro_id_valor)
