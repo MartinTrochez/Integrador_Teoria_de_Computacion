@@ -5,9 +5,10 @@
     tamanio_palabra := len(palabra);
     print(tamanio_palabra);
     print(10*(3+6));
-    a := 5;
-    b := (a*0.25)**a;
-    c := chop(a);
+    a := 2;
+    b := 3;
+    c := a - b;
+    print(c);
     asd := input("ingrese un palabra: ");
     print(asd);
 }

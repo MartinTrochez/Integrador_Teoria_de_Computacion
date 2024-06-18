@@ -9,16 +9,18 @@ Alumnos:
 """
 
 import logging
+import dis
 from enum import Enum, unique
 from typing import Dict
 from ply import lex
 from ply import yacc
+import numpy as np
 
 registro_id_valor = {}
 
 ast = []
 
-reserved = ("INPUT", "PRINT", "ELSE", "IF", "STR", "LEN", "CHOP")
+reserved = ("INPUT", "PRINT", "STR", "LEN", "CHOP")
 
 tokens = reserved + (
     "IDENTIFICADOR",
@@ -124,10 +126,10 @@ def t_IDENTIFICADOR(t):
     return t
 
 
-
 """
 Reglas de gramatica
 """
+
 
 def p_programa(p):
     "programa : declaraciones"
@@ -139,8 +141,12 @@ def p_declaraciones(p):
     """declaraciones : comentario declaraciones
     | comentario
     | declaracion
-    | declaracion comentario
+    | declaraciones comentario
     """
+    if len(p) == 3:
+        p[0] = (p[1], p[2])
+    else:
+        p[0] = p[1]
 
 
 def p_comentario(p):
@@ -157,12 +163,20 @@ def p_estado(p):
     """estado : asignacion_declaracion estado
     | asignacion_declaracion
     """
+    if len(p) == 3:
+        p[0] = (p[1], p[2])
+    else:
+        p[0] = p[1]
 
 
 def p_estado_comentario(p):
     """estado : comentario estado
     | comentario
     """
+    if len(p) == 3:
+        p[0] = (p[1], p[2])
+    else:
+        p[0] = p[1]
 
 
 def p_asignacion_declaracion(p):
@@ -180,11 +194,13 @@ def p_asignacion_declaracion(p):
 
 def p_asignacion_declaracion_string(p):
     """asignacion_declaracion : PRINT LPAR STRING RPAR PUNTOCOMA"""
+    p[0] = (p[1], p[3])
     print(p[3])
 
 
 def p_asignacion_declaracion_identificador(p):
     """asignacion_declaracion : PRINT LPAR IDENTIFICADOR RPAR PUNTOCOMA"""
+    p[0] = (p[1], p[3])
     print(registro_id_valor[p[3]])
 
 
@@ -192,16 +208,19 @@ def p_asignacion_declaracion_numero(p):
     """asignacion_declaracion : PRINT LPAR NUMERO RPAR PUNTOCOMA
     | PRINT LPAR REAL RPAR PUNTOCOMA
     """
+    p[0] = (p[0], p[3])
     print(p[3])
 
 
 def p_asignacion_declaracion_string_identificador(p):
     """asignacion_declaracion : PRINT LPAR STRING COMA IDENTIFICADOR RPAR PUNTOCOMA"""
+    p[0] = (p[1], p[3], p[5])
     print(p[3], registro_id_valor[p[5]])
 
 
 def p_asignacion_declaracion_e(p):
     """asignacion_declaracion : PRINT LPAR E RPAR PUNTOCOMA"""
+    p[0] = (p[1], p[3])
     print(p[3])
 
 
@@ -232,15 +251,39 @@ def p_expresion(p):
     | expresion DIVISION expresion
     | expresion EXPONENTE expresion"""
     if p[2] == "+":
-        p[0] = p[1] + p[3]
+        if p[1] == 0:
+            p[0] = p[3]
+        elif p[3] == 0:
+            p[0] = p[1]
+        else:
+            p[0] = p[1] + p[3]
     elif p[2] == "-":
         p[0] = p[1] - p[3]
     elif p[2] == "*":
-        p[0] = p[1] * p[3]
+        if p[1] == 0 or p[3] == 0:
+            p[0] = 0
+        elif p[1] == 1:
+            p[0] = p[3]
+        elif p[3] == 1:
+            p[0] = p[1]
+        else:
+            p[0] = p[1] * p[3]
     elif p[2] == "/":
-        p[0] = p[1] / p[3]
+        if p[1] == 0:
+            p[0] = 0
+        elif p[3] == 0:
+            raise ValueError("No se puede dividir por cero")
+        elif p[3] == 1:
+            p[0] = p[1]
+        else:
+            p[0] = p[1] / p[3] 
     elif p[2] == "**":
-        p[0] = p[1] ** p[3]
+        if p[3] == 0:
+            p[0] = 1
+        elif p[3] == 1:
+            p[0] = p[1]
+        else:
+            p[0] = p[1] ** p[3]
 
 
 def p_expresion_grupo(p):
@@ -274,10 +317,10 @@ def p_error(p):
 
 if __name__ == "__main__":
     logging.basicConfig(
-        level = logging.DEBUG,
-        filename = "parselog.txt",
-        filemode = "w",
-        format = "%(filename)10s:%(lineno)4d:%(message)s"
+        level=logging.DEBUG,
+        filename="parselog.txt",
+        filemode="w",
+        format="%(filename)10s:%(lineno)4d:%(message)s",
     )
     log = logging.getLogger()
     lexer = lex.lex(debug=True, debuglog=log)
@@ -300,3 +343,4 @@ if __name__ == "__main__":
     print(ast)
 
     print(registro_id_valor)
+    dis.dis(p_expresion)
