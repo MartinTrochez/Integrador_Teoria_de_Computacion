@@ -10,11 +10,8 @@ Alumnos:
 
 import logging
 import dis
-from enum import Enum, unique
-from typing import Dict
 from ply import lex
 from ply import yacc
-import numpy as np
 
 registro_id_valor = {}
 
@@ -258,7 +255,10 @@ def p_expresion(p):
         else:
             p[0] = p[1] + p[3]
     elif p[2] == "-":
-        p[0] = p[1] - p[3]
+        if p[1] == p[3]:
+            p[0] = 0
+        else:
+            p[0] = p[1] - p[3]
     elif p[2] == "*":
         if p[1] == 0 or p[3] == 0:
             p[0] = 0
@@ -276,7 +276,7 @@ def p_expresion(p):
         elif p[3] == 1:
             p[0] = p[1]
         else:
-            p[0] = p[1] / p[3] 
+            p[0] = p[1] / p[3]
     elif p[2] == "**":
         if p[3] == 0:
             p[0] = 1
@@ -312,7 +312,7 @@ def p_expresion_name_str(p):
 
 
 def p_error(p):
-    print("Syntax error at '%s'" % p.value)
+    print(f"Syntax error at {p.value}")
 
 
 if __name__ == "__main__":
@@ -343,4 +343,4 @@ if __name__ == "__main__":
     print(ast)
 
     print(registro_id_valor)
-    dis.dis(p_expresion)
+    # dis.dis(p_expresion)

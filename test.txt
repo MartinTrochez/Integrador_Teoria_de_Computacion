@@ -7,7 +7,10 @@
     print(10*(3+6));
     a := 2;
     b := 3;
-    c := a - b;
+    c := a /b ;
+    fnumero := 4.5;
+    inumero := chop(fnumero);
+    print("inumero: ", inumero);
     print(c);
     asd := input("ingrese un palabra: ");
     print(asd);
