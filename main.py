@@ -81,7 +81,7 @@ def t_REAL(t):
     try:
         t.value = float(t.value)
     except ValueError:
-        print("Integer value too large %d", t.value)
+        print(f"Integer value too large f{t.value}")
         t.value = 0
     return t
 
@@ -91,7 +91,7 @@ def t_NUMERO(t):
     try:
         t.value = int(t.value)
     except ValueError:
-        print("Integer value too large %d", t.value)
+        print(f"Integer value too large f{t.value}")
         t.value = 0
     return t
 
